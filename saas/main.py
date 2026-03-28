@@ -85,14 +85,14 @@ templates.env.filters["fmt_ts"] = _fmt_ts
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {})
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request, "register.html", {"error": None})
 
 
 @app.post("/register", response_class=HTMLResponse)
@@ -104,16 +104,16 @@ async def register(
 ):
     if password != password2:
         return templates.TemplateResponse(
-            "register.html", {"request": request, "error": "Passwords do not match"}
+            request, "register.html", {"error": "Passwords do not match"}
         )
     if len(password) < 8:
         return templates.TemplateResponse(
-            "register.html", {"request": request, "error": "Password must be at least 8 characters"}
+            request, "register.html", {"error": "Password must be at least 8 characters"}
         )
     user = await db.create_user(email, password)
     if not user:
         return templates.TemplateResponse(
-            "register.html", {"request": request, "error": "Email already registered"}
+            request, "register.html", {"error": "Email already registered"}
         )
     response = RedirectResponse("/dashboard", status_code=303)
     set_session_cookie(response, user.id, user.email)
@@ -122,7 +122,7 @@ async def register(
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request, "login.html", {"error": None})
 
 
 @app.post("/login", response_class=HTMLResponse)
@@ -134,7 +134,7 @@ async def login(
     user = await db.verify_password(email, password)
     if not user:
         return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "Invalid email or password"}
+            request, "login.html", {"error": "Invalid email or password"}
         )
     response = RedirectResponse("/dashboard", status_code=303)
     set_session_cookie(response, user.id, user.email)
@@ -159,8 +159,7 @@ async def dashboard(request: Request, user_id: int = Depends(require_auth)):
     prices = monitor.get_current_prices() if monitor else {}
     plan = sub.plan if sub else "free"
     limit = PLAN_LIMITS.get(plan, 1)
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard.html", {
         "user": user,
         "sub": sub,
         "alerts": alerts,
@@ -215,8 +214,7 @@ async def toggle_alert(alert_id: int, enabled: int = Form(...), user_id: int = D
 async def settings_page(request: Request, user_id: int = Depends(require_auth)):
     user = await db.get_user_by_id(user_id)
     sub = await db.get_subscription(user_id)
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "settings.html", {
         "user": user,
         "sub": sub,
         "saved": False,
@@ -232,8 +230,7 @@ async def save_settings(
     await db.update_telegram_chat_id(user_id, telegram_chat_id.strip())
     user = await db.get_user_by_id(user_id)
     sub = await db.get_subscription(user_id)
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "settings.html", {
         "user": user,
         "sub": sub,
         "saved": True,
@@ -256,8 +253,8 @@ async def upgrade(plan: str, request: Request, user_id: int = Depends(require_au
     )
     if not url:
         return templates.TemplateResponse(
-            "error.html",
-            {"request": request, "message": "Stripe not configured. Set STRIPE_SECRET_KEY."},
+            request, "error.html",
+            {"message": "Stripe not configured. Set STRIPE_SECRET_KEY."},
         )
     return RedirectResponse(url, status_code=303)
 
@@ -275,8 +272,7 @@ async def billing_portal(user_id: int = Depends(require_auth)):
 
 @app.get("/billing/success", response_class=HTMLResponse)
 async def billing_success(request: Request, plan: str = "starter", user_id: int = Depends(require_auth)):
-    return templates.TemplateResponse("billing_success.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "billing_success.html", {
         "plan": plan,
     })
 
