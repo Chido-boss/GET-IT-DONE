@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — CryptoWatch{% endblock %}
+
+{% block nav_links %}
+  <a href="/settings">Settings</a>
+  <form method="post" action="/logout" style="display:inline;">
+    <button type="submit" class="btn btn-outline btn-sm">Log Out</button>
+  </form>
+{% endblock %}
+
+{% block head %}
+<style>
+  .dash { padding: 2rem 0; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+  .page-header h1 { font-size: 1.4rem; font-weight: 700; }
+  .page-header .email { color: var(--muted); font-size: 0.85rem; }
+
+  /* Stat cards */
+  .stat-val { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 0.25rem; }
+
+  /* Alert form */
+  .alert-form { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .alert-form h2 { font-size: 1rem; margin-bottom: 1rem; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end; }
+  @media(max-width:800px) { .form-row { grid-template-columns: 1fr 1fr; } }
+
+  /* Upgrade banner */
+  .upgrade-banner { background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.2);
+                    border-radius: var(--radius); padding: 1rem 1.25rem; display: flex;
+                    align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .upgrade-banner p { font-size: 0.9rem; }
+
+  /* Price ticker */
+  .ticker { font-size: 0.9rem; color: var(--muted); }
+  .ticker span { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container dash">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="email">{{ user.email }}</p>
+    </div>
+    <div class="ticker" hx-get="/prices" hx-trigger="every 10s" hx-swap="innerHTML" id="price-ticker">
+      BTC <span>${{ "%.0f"|format(prices.get("BTC", 0)) }}</span>
+      &nbsp;·&nbsp;
+      ETH <span>${{ "%.0f"|format(prices.get("ETH", 0)) }}</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4 mb-2">
+    <div class="card">
+      <div class="stat-val">{{ alert_count }}/{{ alert_limit }}</div>
+      <div class="stat-label">Active Alerts</div>
+    </div>
+    <div class="card">
+      <div class="stat-val">
+        <span class="badge {% if plan == 'pro' %}badge-blue{% elif plan == 'starter' %}badge-green{% else %}badge-yellow{% endif %}">
+          {{ plan|capitalize }}
+        </span>
+      </div>
+      <div class="stat-label">Current Plan</div>
+    </div>
+    <div class="card">
+      <div class="stat-val">{{ history|length }}</div>
+      <div class="stat-label">Alerts Fired (Recent)</div>
+    </div>
+    <div class="card">
+      <div class="stat-val {% if user.telegram_chat_id %}" style="color:var(--green){% else %}" style="color:var(--red){% endif %}">
+        {% if user.telegram_chat_id %}Set{% else %}Not Set{% endif %}
+      </div>
+      <div class="stat-label">Telegram <a href="/settings" class="text-sm" style="color:var(--accent)">configure</a></div>
+    </div>
+  </div>
+
+  <!-- Upgrade banner if on free plan -->
+  {% if plan == "free" %}
+  <div class="upgrade-banner">
+    <p>🚀 <strong>Free plan:</strong> 1 alert max. Upgrade to Starter for 10 alerts at <strong>£9.99/month</strong>.</p>
+    <a href="/upgrade/starter" class="btn btn-primary btn-sm">Upgrade</a>
+  </div>
+  {% endif %}
+
+  {% if not user.telegram_chat_id %}
+  <div class="upgrade-banner" style="border-color:rgba(255,214,0,0.3);background:rgba(255,214,0,0.07);">
+    <p>⚠️ <strong>Telegram not connected.</strong> Alerts won't be delivered until you add your Telegram Chat ID.</p>
+    <a href="/settings" class="btn btn-outline btn-sm">Connect Now</a>
+  </div>
+  {% endif %}
+
+  <!-- Create alert form -->
+  {% if alert_count < alert_limit %}
+  <div class="alert-form">
+    <h2>+ New Alert</h2>
+    <form method="post" action="/alerts/create">
+      <div class="form-row">
+        <div class="form-group" style="margin:0">
+          <label>Asset</label>
+          <select name="asset">
+            <option value="BTC">BTC</option>
+            <option value="ETH">ETH</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Condition</label>
+          <select name="condition">
+            <option value="above">Price Above</option>
+            <option value="below">Price Below</option>
+            <option value="change_pct">% Change (1hr)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Threshold</label>
+          <input type="number" name="threshold" step="0.01" min="0.01" placeholder="e.g. 70000" required/>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Label (optional)</label>
+          <input type="text" name="label" placeholder="My alert" maxlength="50"/>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary" style="width:100%">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="alert-form" style="text-align:center;padding:2rem;">
+    <p class="muted">You've reached your alert limit on the <strong>{{ plan }}</strong> plan.</p>
+    {% if plan != "pro" %}
+      <a href="/upgrade/{% if plan == 'free' %}starter{% else %}pro{% endif %}" class="btn btn-primary mt-2">
+        Upgrade to add more alerts
+      </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Alert list -->
+  <div class="card mb-2">
+    <div class="flex items-center justify-between mb-1">
+      <h2 style="font-size:1rem;">Your Alerts</h2>
+    </div>
+    {% if alerts %}
+    <table>
+      <thead>
+        <tr>
+          <th>Asset</th>
+          <th>Condition</th>
+          <th>Threshold</th>
+          <th>Label</th>
+          <th>Status</th>
+          <th>Last Fired</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in alerts %}
+        <tr>
+          <td><strong>{{ a.asset }}</strong></td>
+          <td>
+            {% if a.condition == "above" %}Price above
+            {% elif a.condition == "below" %}Price below
+            {% else %}Change ≥{% endif %}
+          </td>
+          <td style="font-variant-numeric:tabular-nums">
+            {% if a.condition == "change_pct" %}{{ a.threshold }}%{% else %}${{ "{:,.0f}".format(a.threshold) }}{% endif %}
+          </td>
+          <td class="muted">{{ a.label or "—" }}</td>
+          <td>
+            {% if a.enabled %}
+              <span class="badge badge-green">Active</span>
+            {% else %}
+              <span class="badge badge-yellow">Paused</span>
+            {% endif %}
+          </td>
+          <td class="muted">{{ a.last_fired | fmt_ts }}</td>
+          <td style="white-space:nowrap">
+            <form method="post" action="/alerts/{{ a.id }}/toggle" style="display:inline">
+              <input type="hidden" name="enabled" value="{{ 0 if a.enabled else 1 }}"/>
+              <button type="submit" class="btn btn-outline btn-sm">
+                {{ "Pause" if a.enabled else "Resume" }}
+              </button>
+            </form>
+            <form method="post" action="/alerts/{{ a.id }}/delete" style="display:inline"
+                  onsubmit="return confirm('Delete this alert?')">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted text-sm" style="padding:1rem 0">No alerts yet. Create one above.</p>
+    {% endif %}
+  </div>
+
+  <!-- Alert history -->
+  {% if history %}
+  <div class="card">
+    <h2 style="font-size:1rem;margin-bottom:1rem;">Recent Alerts Fired</h2>
+    <table>
+      <thead>
+        <tr><th>Asset</th><th>Price</th><th>Message</th><th>When</th></tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+        <tr>
+          <td><strong>{{ h.asset }}</strong></td>
+          <td style="font-variant-numeric:tabular-nums">${{ "{:,.0f}".format(h.price_at_fire) }}</td>
+          <td class="muted" style="font-size:0.82rem">{{ h.message | truncate(60) }}</td>
+          <td class="muted">{{ h.fired_at | fmt_ts }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

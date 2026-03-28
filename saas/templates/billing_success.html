@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Subscription Active — CryptoWatch{% endblock %}
+{% block nav_links %}
+  <a href="/dashboard">Dashboard</a>
+{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:5rem 1rem">
+  <div style="font-size:3rem;margin-bottom:1rem">🎉</div>
+  <h1 style="font-size:1.75rem;margin-bottom:0.75rem">You're on {{ plan | capitalize }}!</h1>
+  <p class="muted" style="margin-bottom:2rem">Your subscription is now active. Start creating alerts.</p>
+  <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+</div>
+{% endblock %}

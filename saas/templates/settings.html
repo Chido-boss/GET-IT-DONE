@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Settings — CryptoWatch{% endblock %}
+{% block nav_links %}
+  <a href="/dashboard">Dashboard</a>
+  <form method="post" action="/logout" style="display:inline;">
+    <button type="submit" class="btn btn-outline btn-sm">Log Out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<div class="container" style="padding:2rem 1.5rem;max-width:600px">
+  <h1 style="font-size:1.4rem;margin-bottom:2rem">Account Settings</h1>
+
+  <!-- Telegram setup -->
+  <div class="card mb-2">
+    <h2 style="font-size:1rem;margin-bottom:0.5rem">Telegram Notifications</h2>
+    <p class="text-sm muted mb-2">
+      To receive alerts on Telegram:
+      <ol style="margin:0.75rem 0 0.75rem 1.25rem;line-height:2">
+        <li>Open Telegram and search for <strong>@userinfobot</strong></li>
+        <li>Start the bot — it replies with your Chat ID</li>
+        <li>Paste it below and save</li>
+      </ol>
+    </p>
+    <form method="post" action="/settings">
+      <div class="form-group">
+        <label>Your Telegram Chat ID</label>
+        <input type="text" name="telegram_chat_id" value="{{ user.telegram_chat_id }}" placeholder="e.g. 123456789"/>
+      </div>
+      {% if saved %}
+        <p class="success-msg mb-1">Saved successfully.</p>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  </div>
+
+  <!-- Subscription -->
+  <div class="card mb-2">
+    <h2 style="font-size:1rem;margin-bottom:1rem">Subscription</h2>
+    <p class="text-sm">Current plan:
+      <strong>{{ sub.plan | capitalize if sub else "Free" }}</strong>
+      {% if sub and sub.status != "active" %}
+        <span class="badge badge-red">{{ sub.status }}</span>
+      {% endif %}
+    </p>
+    <div class="flex gap-1 mt-2" style="flex-wrap:wrap">
+      {% if not sub or sub.plan == "free" %}
+        <a href="/upgrade/starter" class="btn btn-primary btn-sm">Upgrade to Starter — £9.99/mo</a>
+        <a href="/upgrade/pro" class="btn btn-outline btn-sm">Upgrade to Pro — £24.99/mo</a>
+      {% elif sub.plan == "starter" %}
+        <a href="/upgrade/pro" class="btn btn-primary btn-sm">Upgrade to Pro — £24.99/mo</a>
+        {% if sub.stripe_customer_id %}
+          <a href="/billing/portal" class="btn btn-outline btn-sm">Manage Billing</a>
+        {% endif %}
+      {% else %}
+        {% if sub.stripe_customer_id %}
+          <a href="/billing/portal" class="btn btn-outline btn-sm">Manage Billing</a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="text-sm muted"><a href="/dashboard">← Back to Dashboard</a></p>
+</div>
+{% endblock %}

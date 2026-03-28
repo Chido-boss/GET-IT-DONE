@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}CryptoWatch{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d0d; --card: #141414; --border: #222;
+      --text: #e8e8e8; --muted: #888; --accent: #00e5ff;
+      --green: #00c853; --red: #ff1744; --yellow: #ffd600;
+      --radius: 8px; --font: 'Inter', system-ui, sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* Nav */
+    nav { border-bottom: 1px solid var(--border); padding: 1rem 0; }
+    nav .inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 1.25rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    .logo span { color: var(--text); }
+    nav .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    nav .nav-links a { color: var(--muted); font-size: 0.9rem; }
+    nav .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .btn { display: inline-block; padding: 0.5rem 1.25rem; border-radius: var(--radius);
+           font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.8rem; }
+
+    /* Cards */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+    .card-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 0.5rem; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .badge-green { background: rgba(0,200,83,0.15); color: var(--green); }
+    .badge-yellow { background: rgba(255,214,0,0.15); color: var(--yellow); }
+    .badge-red { background: rgba(255,23,68,0.15); color: var(--red); }
+    .badge-blue { background: rgba(0,229,255,0.15); color: var(--accent); }
+
+    /* Forms */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input, select { width: 100%; padding: 0.6rem 0.85rem; background: #1a1a1a; border: 1px solid var(--border);
+                    border-radius: var(--radius); color: var(--text); font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .error-msg { color: var(--red); font-size: 0.85rem; margin-top: 0.5rem; }
+    .success-msg { color: var(--green); font-size: 0.85rem; margin-top: 0.5rem; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.75rem;
+         text-transform: uppercase; letter-spacing: 0.5px; padding: 0.5rem 0.75rem;
+         border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 0.75rem; border-bottom: 1px solid #1a1a1a; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Utilities */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .mt-1 { margin-top: 0.5rem; } .mt-2 { margin-top: 1rem; } .mt-3 { margin-top: 1.5rem; }
+    .mb-1 { margin-bottom: 0.5rem; } .mb-2 { margin-bottom: 1rem; }
+    .muted { color: var(--muted); } .text-sm { font-size: 0.85rem; }
+    .text-right { text-align: right; }
+    .flex { display: flex; } .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; } .gap-1 { gap: 0.5rem; }
+    .price-big { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    @media (max-width: 700px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <div class="container inner">
+      <a class="logo" href="/">Crypto<span>Watch</span></a>
+      <div class="nav-links">
+        {% block nav_links %}
+          <a href="/login">Login</a>
+          <a class="btn btn-primary" href="/register">Get Started Free</a>
+        {% endblock %}
+      </div>
+    </div>
+  </nav>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

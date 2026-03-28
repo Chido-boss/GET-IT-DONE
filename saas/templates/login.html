@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Login — CryptoWatch{% endblock %}
+{% block content %}
+<style>
+  .auth-wrap { display: flex; justify-content: center; align-items: flex-start; padding: 4rem 1rem; }
+  .auth-box { width: 100%; max-width: 400px; }
+  .auth-box h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .auth-box .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+</style>
+<div class="auth-wrap">
+  <div class="auth-box">
+    <h1>Welcome back</h1>
+    <p class="sub">Log in to your CryptoWatch account</p>
+    <form method="post" action="/login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" required autofocus placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="••••••••"/>
+      </div>
+      {% if error %}
+        <p class="error-msg">{{ error }}</p>
+      {% endif %}
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:.75rem;font-size:1rem;margin-top:.5rem;">
+        Log In
+      </button>
+    </form>
+    <p class="text-sm muted mt-2" style="text-align:center;">
+      No account? <a href="/register">Sign up free</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

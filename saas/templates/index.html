@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}CryptoWatch — Crypto Price Alerts via Telegram{% endblock %}
+{% block content %}
+<style>
+  .hero { text-align: center; padding: 5rem 1rem 4rem; }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; line-height: 1.15;
+              letter-spacing: -1px; margin-bottom: 1.25rem; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.15rem; color: var(--muted); max-width: 520px; margin: 0 auto 2rem; line-height: 1.6; }
+  .hero-cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .hero-cta .btn { padding: 0.75rem 2rem; font-size: 1rem; }
+
+  .how { padding: 4rem 0; }
+  .how h2 { text-align: center; font-size: 1.75rem; margin-bottom: 2.5rem; }
+  .step { text-align: center; }
+  .step-num { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--accent);
+              color: #000; font-weight: 800; display: flex; align-items: center; justify-content: center;
+              font-size: 1rem; margin: 0 auto 1rem; }
+  .step h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .step p { font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+
+  .pricing { padding: 4rem 0; }
+  .pricing h2 { text-align: center; font-size: 1.75rem; margin-bottom: 2.5rem; }
+  .plan-card { text-align: center; padding: 2rem 1.5rem; position: relative; }
+  .plan-card.featured { border-color: var(--accent); }
+  .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+                background: var(--accent); color: #000; padding: 0.2rem 1rem;
+                border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+  .plan-name { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+               color: var(--muted); margin-bottom: 0.75rem; }
+  .plan-price { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+  .plan-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+  .plan-features { list-style: none; margin: 1.5rem 0; text-align: left; }
+  .plan-features li { font-size: 0.88rem; padding: 0.4rem 0; color: var(--muted);
+                      border-bottom: 1px solid var(--border); }
+  .plan-features li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+  .plan-card .btn { width: 100%; text-align: center; padding: 0.7rem; margin-top: 0.5rem; }
+</style>
+
+<section class="hero">
+  <div class="container">
+    <h1>Get alerted when<br/><span>crypto moves</span></h1>
+    <p>Set price alerts for BTC and ETH. Get instant Telegram notifications when conditions are met. No app needed.</p>
+    <div class="hero-cta">
+      <a href="/register" class="btn btn-primary">Start Free — No Card Needed</a>
+      <a href="#pricing" class="btn btn-outline">See Pricing</a>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="container">
+    <h2>How it works</h2>
+    <div class="grid-3">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Create an account</h3>
+        <p>Sign up free in 30 seconds. No credit card required for the free plan.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Connect Telegram</h3>
+        <p>Add your Telegram chat ID in settings. Takes 2 minutes and alerts go directly to your phone.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Set your alerts</h3>
+        <p>Choose BTC or ETH, set a price condition or % change threshold. We monitor 24/7.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="container">
+    <h2>Simple pricing</h2>
+    <div class="grid-3">
+      <div class="card plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">£0 <span>/mo</span></div>
+        <ul class="plan-features">
+          <li>1 active alert</li>
+          <li>BTC &amp; ETH</li>
+          <li>Telegram delivery</li>
+          <li>Price above/below alerts</li>
+        </ul>
+        <a href="/register" class="btn btn-outline">Get Started</a>
+      </div>
+      <div class="card plan-card featured">
+        <div class="plan-badge">Most Popular</div>
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">£9.99 <span>/mo</span></div>
+        <ul class="plan-features">
+          <li>10 active alerts</li>
+          <li>BTC &amp; ETH</li>
+          <li>Telegram delivery</li>
+          <li>% change alerts</li>
+          <li>Alert history</li>
+        </ul>
+        <a href="/register" class="btn btn-primary">Start Free Trial</a>
+      </div>
+      <div class="card plan-card">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">£24.99 <span>/mo</span></div>
+        <ul class="plan-features">
+          <li>Unlimited alerts</li>
+          <li>BTC &amp; ETH</li>
+          <li>Telegram delivery</li>
+          <li>% change alerts</li>
+          <li>Full alert history</li>
+          <li>Custom cooldowns</li>
+        </ul>
+        <a href="/register" class="btn btn-outline">Get Pro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding: 3rem 0; text-align: center; border-top: 1px solid var(--border);">
+  <div class="container">
+    <p class="muted text-sm">Prices monitored live from Binance · Delivery via Telegram · Built in Gateshead, England</p>
+  </div>
+</section>
+{% endblock %}
