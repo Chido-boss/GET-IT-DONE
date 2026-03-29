@@ -115,7 +115,9 @@ async def scan_opportunities(
     async def _enrich(rate: FundingRate, base: str) -> FundingOpportunity | None:
         try:
             spot_exchange, spot_price = await exchange_client.get_best_spot_price(base)
+            logger.info("  %s %s: spot_price=%.4f from %s", rate.exchange, base, spot_price, spot_exchange)
             if spot_price <= 0:
+                logger.info("  SKIP %s %s: spot_price=0", rate.exchange, base)
                 return None
 
             perp_price = await exchange_client.get_perp_price(rate.exchange, rate.symbol)
@@ -123,11 +125,12 @@ async def scan_opportunities(
                 perp_price = spot_price  # fallback
 
             basis_pct = ((perp_price - spot_price) / spot_price) * 100.0
+            logger.info("  %s %s: basis_pct=%.4f max=%.4f", rate.exchange, base, basis_pct, cfg.basis_max_pct)
 
             # Filter: basis too high (perp too expensive vs spot)
             if basis_pct > cfg.basis_max_pct:
-                logger.debug(
-                    "Skipping %s %s: basis=%.3f%% > max=%.3f%%",
+                logger.info(
+                    "  SKIP %s %s: basis=%.3f%% > max=%.3f%%",
                     rate.exchange, base, basis_pct, cfg.basis_max_pct,
                 )
                 return None
