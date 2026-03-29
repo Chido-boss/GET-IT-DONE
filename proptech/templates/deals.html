@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Deal Analyser — Northbridge{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">🎯 Deal Analyser</div>
+    <div class="page-sub">Enter any North East property. Get comps, BMV score, strategy metrics, and AI analysis.</div>
+</div>
+
+<div class="grid-2" style="gap: 24px; align-items: start;">
+    <div class="card">
+        <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 20px;">Property Details</h2>
+        <form method="post" action="/deals/analyse" id="analyse-form">
+            <div class="form-group">
+                <label>Full Address</label>
+                <input type="text" name="address" placeholder="e.g. 14 Bensham Road, Gateshead" required>
+            </div>
+            <div class="grid-2" style="gap: 12px;">
+                <div class="form-group">
+                    <label>Postcode</label>
+                    <input type="text" name="postcode" placeholder="NE8 1AB" required>
+                </div>
+                <div class="form-group">
+                    <label>Asking Price (£)</label>
+                    <input type="number" name="asking_price" placeholder="85000" required>
+                </div>
+            </div>
+            <div class="grid-2" style="gap: 12px;">
+                <div class="form-group">
+                    <label>Property Type</label>
+                    <select name="property_type">
+                        <option value="">Any</option>
+                        <option value="T">Terraced</option>
+                        <option value="S">Semi-Detached</option>
+                        <option value="D">Detached</option>
+                        <option value="F">Flat / Maisonette</option>
+                        <option value="O">Other / Commercial</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bedrooms</label>
+                    <input type="number" name="bedrooms" placeholder="3" min="0" max="20">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Listing Description (paste from Rightmove/Zoopla)</label>
+                <textarea name="description" rows="4" placeholder="Chain free, vacant possession, sold as seen..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Primary Strategy</label>
+                <select name="strategy">
+                    <option value="flip">Flip (Buy, Refurb, Sell)</option>
+                    <option value="btl">Buy to Let (BTL)</option>
+                    <option value="hmo">HMO (House in Multiple Occupation)</option>
+                    <option value="planning_gain">Planning Gain</option>
+                    <option value="conversion">Commercial to Residential Conversion</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Run Analysis →
+            </button>
+        </form>
+    </div>
+
+    <div>
+        <div class="card" style="margin-bottom: 16px;">
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--gold);">📚 Strategy Guide</h3>
+            <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
+                <div><strong style="color:var(--text);">Flip</strong> — Buy distressed, refurb, sell. NE terraces £60k-£100k entry. Target 20%+ ROI.</div>
+                <div style="margin-top:8px;"><strong style="color:var(--text);">BTL</strong> — Target 6%+ gross yield. NE outperforms national average.</div>
+                <div style="margin-top:8px;"><strong style="color:var(--text);">HMO</strong> — Near Newcastle/Sunderland uni. 5+ rooms = 12-15% yield.</div>
+                <div style="margin-top:8px;"><strong style="color:var(--text);">Planning Gain</strong> — Find site with potential, get planning permission, sell with PP in place. No build needed.</div>
+                <div style="margin-top:8px;"><strong style="color:var(--text);">Conversion</strong> — Commercial → residential via PD rights. 40-60% uplift potential.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text);">🔥 BMV Signals to Look For</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                {% for kw in ["chain free", "vacant possession", "sold as seen", "motivated seller", "quick sale", "price reduction", "repossession", "probate", "executor sale", "cash buyer preferred", "investment opportunity", "refurbishment required", "development opportunity"] %}
+                <span class="flag">{{ kw }}</span>
+                {% endfor %}
+            </div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 12px;">
+                Paste descriptions containing these phrases for higher BMV scores.
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if deals %}
+<div style="margin-top: 32px;">
+    <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">Deal History</h2>
+    <div class="card" style="padding: 0;">
+        <table>
+            <thead>
+                <tr><th>Address</th><th>Strategy</th><th>Purchase</th><th>Est. Profit</th><th>ROI</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+            {% for d in deals %}
+            <tr>
+                <td>{{ d.address }}</td>
+                <td><span class="flag">{{ d.strategy }}</span></td>
+                <td>{% if d.purchase_price %}£{{ "{:,}".format(d.purchase_price) }}{% else %}—{% endif %}</td>
+                <td style="color: var(--green);">{% if d.potential_profit and d.potential_profit > 0 %}£{{ "{:,}".format(d.potential_profit) }}{% else %}—{% endif %}</td>
+                <td style="color: var(--gold);">{% if d.roi_pct %}{{ "%.1f"|format(d.roi_pct) }}%{% else %}—{% endif %}</td>
+                <td><span class="flag">{{ d.status }}</span></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

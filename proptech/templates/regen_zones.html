@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Regen Zones — Northbridge{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">🔄 Regeneration Zones</div>
+    <div class="page-sub">North East England major development schemes — buy before the value lands</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px;">
+{% for z in zones %}
+<div class="card" style="border-left: 3px solid {% if z.status == 'Active' %}var(--green){% elif 'Planning' in z.status %}var(--gold){% else %}var(--muted){% endif %};">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div>
+            <div style="font-size: 16px; font-weight: 700;">{{ z.name }}</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">{{ z.council }}</div>
+        </div>
+        <span style="font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px;
+                     {% if z.status == 'Active' %}background: rgba(16,185,129,0.15); color: var(--green);
+                     {% elif 'Planning' in z.status %}background: rgba(245,158,11,0.15); color: var(--gold);
+                     {% else %}background: rgba(100,116,139,0.1); color: var(--muted);{% endif %}">
+            {{ z.status }}
+        </span>
+    </div>
+
+    <div style="font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;">
+        {{ z.description }}
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 12px;">
+        <div>
+            <span style="color: var(--muted);">Investment</span><br>
+            <span style="font-weight: 600; color: var(--gold);">{{ z.funding_amount }}</span>
+        </div>
+        <div>
+            <span style="color: var(--muted);">Timeline</span><br>
+            <span style="font-weight: 600;">{{ z.announcement_date }} – {{ z.completion_date }}</span>
+        </div>
+        <div>
+            <span style="color: var(--muted);">Postcodes</span><br>
+            <span style="font-weight: 600;">{{ z.postcodes }}</span>
+        </div>
+    </div>
+
+    {% if z.opportunity_notes %}
+    <div style="background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.2); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--accent-light); line-height: 1.6;">
+        💡 {{ z.opportunity_notes }}
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<div class="card" style="margin-top: 24px; background: var(--surface2); border-color: var(--gold);">
+    <div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 8px;">⚡ The Regeneration Arbitrage Play</div>
+    <div style="font-size: 13px; color: var(--muted); line-height: 1.8;">
+        Buy property in or adjacent to a confirmed regeneration zone <strong style="color:var(--text);">before</strong> the value impact is priced in.
+        NE property near Teesworks is still trading at deep discounts vs comparable areas in other UK freeports.
+        Sunderland city fringe is 40% cheaper than equivalent Newcastle stock despite the same regeneration trajectory.
+        <br><br>
+        Use the <a href="/planning">Planning Uplift Monitor</a> to watch for applications in these zones —
+        a major planning approval is often the signal that prices are about to move.
+    </div>
+</div>
+
+{% endblock %}

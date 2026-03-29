@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Planning Uplift — Northbridge{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">🏗️ Planning Uplift Monitor</div>
+    <div class="page-sub">All 10 North East councils — AI-scored for investment opportunity</div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom: 20px;">
+    <form method="get" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 160px;">
+            <label>Min Uplift Score</label>
+            <select name="min_score">
+                <option value="0" {% if filter_score == 0 %}selected{% endif %}>All applications</option>
+                <option value="25" {% if filter_score == 25 %}selected{% endif %}>25+ (Moderate)</option>
+                <option value="40" {% if filter_score == 40 %}selected{% endif %}>40+ (Worth watching)</option>
+                <option value="60" {% if filter_score == 60 %}selected{% endif %}>60+ (High opportunity)</option>
+                <option value="80" {% if filter_score == 80 %}selected{% endif %}>80+ (Strong signal)</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 160px;">
+            <label>Council</label>
+            <select name="council">
+                <option value="">All councils</option>
+                {% for c in councils %}
+                <option value="{{ c }}" {% if filter_council == c %}selected{% endif %}>{{ c | replace('_',' ') | title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <button type="button" class="btn btn-gold btn-sm"
+                hx-get="/api/refresh-planning"
+                hx-target="#refresh-status"
+                hx-swap="innerHTML"
+                style="margin-bottom: 0;">
+            ↻ Refresh Data
+        </button>
+        <span id="refresh-status" style="font-size: 13px; color: var(--muted); align-self: center;"></span>
+    </form>
+</div>
+
+{% if applications %}
+<div class="card" style="padding: 0;">
+    <table>
+        <thead>
+            <tr>
+                <th>Reference</th>
+                <th>Address</th>
+                <th>Council</th>
+                <th>Type</th>
+                <th>Opportunity</th>
+                <th>Uplift Score</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for app in applications %}
+        <tr id="row-{{ app.id }}">
+            <td style="font-size: 12px; color: var(--muted);">{{ app.reference }}</td>
+            <td style="max-width: 200px;">
+                {% if app.url %}
+                <a href="{{ app.url }}" target="_blank" style="font-size: 13px;">
+                    {{ app.address | truncate(40, True) if app.address else "—" }}
+                </a>
+                {% else %}
+                <span style="font-size: 13px;">{{ app.address | truncate(40, True) if app.address else "—" }}</span>
+                {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--muted);">
+                {{ app.council | replace("Council","") | replace("City","") | replace("Borough","") | truncate(18, True) }}
+            </td>
+            <td style="font-size: 12px;">{{ app.application_type | truncate(25, True) if app.application_type else "—" }}</td>
+            <td>
+                {% if app.opportunity_type %}
+                {% for part in app.opportunity_type.split(', ') %}
+                <span class="flag">{{ part }}</span>
+                {% endfor %}
+                {% else %}
+                <span style="color: var(--muted); font-size: 12px;">—</span>
+                {% endif %}
+            </td>
+            <td>
+                <span class="score {% if app.uplift_score >= 60 %}score-high{% elif app.uplift_score >= 35 %}score-mid{% else %}score-low{% endif %}">
+                    {{ app.uplift_score | int }}
+                </span>
+            </td>
+            <td style="font-size: 12px; color: var(--muted);">{{ app.received_date or "—" }}</td>
+            <td>
+                <button class="btn btn-sm" style="background: var(--surface2); color: var(--text);"
+                        hx-get="/planning/{{ app.id }}/analyse"
+                        hx-target="#ai-analysis-{{ app.id }}"
+                        hx-swap="innerHTML"
+                        hx-indicator="#spinner-{{ app.id }}">
+                    <span id="spinner-{{ app.id }}" class="htmx-indicator">⏳</span>AI
+                </button>
+                <div id="ai-analysis-{{ app.id }}" style="display:none;"></div>
+            </td>
+        </tr>
+        <tr id="analysis-row-{{ app.id }}" style="display:none;">
+            <td colspan="8">
+                <div id="ai-box-{{ app.id }}" class="analysis-box" style="margin: 8px 0; font-size: 13px;"></div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 48px;">
+    <div style="font-size: 48px; margin-bottom: 12px;">🏗️</div>
+    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">No planning applications loaded yet</div>
+    <div style="color: var(--muted); margin-bottom: 20px;">
+        Data refreshes every 6 hours automatically. Click below to load now.
+    </div>
+    <button class="btn btn-primary"
+            hx-get="/api/refresh-planning"
+            hx-target="#load-status"
+            hx-swap="innerHTML">
+        Load Planning Data Now
+    </button>
+    <div id="load-status" style="margin-top: 12px; color: var(--muted);"></div>
+</div>
+{% endif %}
+
+<script>
+// Show AI analysis in expanded row when loaded
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    const target = evt.target;
+    if (target.id && target.id.startsWith('ai-analysis-')) {
+        const id = target.id.replace('ai-analysis-', '');
+        const data = target.textContent;
+        try {
+            const json = JSON.parse(data);
+            const analysisRow = document.getElementById('analysis-row-' + id);
+            const box = document.getElementById('ai-box-' + id);
+            if (analysisRow && box && json.analysis) {
+                box.textContent = json.analysis;
+                analysisRow.style.display = '';
+            }
+        } catch(e) {}
+    }
+});
+</script>
+
+{% endblock %}

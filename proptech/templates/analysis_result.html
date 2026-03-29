@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Analysis — {{ listing.address }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom: 20px;">
+    <a href="/deals" style="font-size: 13px; color: var(--muted);">← Back to Deal Analyser</a>
+</div>
+
+<div class="page-header">
+    <div class="page-title">{{ listing.address }}</div>
+    <div class="page-sub">{{ listing.postcode }} · {{ listing.property_type or "Unknown type" }} · {{ listing.bedrooms or "?" }} bed</div>
+</div>
+
+<!-- Verdict + Score row -->
+<div class="grid-3" style="margin-bottom: 24px; gap: 16px;">
+    <div class="card" style="text-align: center;">
+        <div class="card-title">BMV Score</div>
+        <div class="card-value" style="color: {% if deal_score.bmv_score >= 70 %}var(--green){% elif deal_score.bmv_score >= 40 %}var(--gold){% else %}var(--muted){% endif %};">
+            {{ deal_score.bmv_score | int }}<span style="font-size: 18px;">/100</span>
+        </div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div class="card-title">Verdict</div>
+        <div style="margin-top: 12px; font-size: 20px; font-weight: 800;">
+            <span class="{% if 'STRONG' in deal_score.verdict %}verdict-buy{% elif 'INVEST' in deal_score.verdict %}verdict-investigate{% else %}verdict-pass{% endif %}">
+                {% if 'STRONG' in deal_score.verdict %}✅ {{ deal_score.verdict }}
+                {% elif 'INVEST' in deal_score.verdict %}⚠️ {{ deal_score.verdict }}
+                {% else %}❌ {{ deal_score.verdict }}{% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div class="card-title">Discount vs Market</div>
+        <div class="card-value" style="color: {% if deal_score.discount_pct >= 15 %}var(--green){% elif deal_score.discount_pct > 0 %}var(--gold){% else %}var(--red){% endif %};">
+            {% if deal_score.discount_pct > 0 %}
+                {{ "%.1f"|format(deal_score.discount_pct) }}%
+            {% else %}
+                At Market
+            {% endif %}
+        </div>
+        <div class="card-sub">vs Land Registry avg</div>
+    </div>
+</div>
+
+<!-- Pricing breakdown -->
+<div class="grid-2" style="gap: 24px; margin-bottom: 24px;">
+    <div class="card">
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px;">💰 Price Analysis</h3>
+        <table style="font-size: 14px;">
+            <tr>
+                <td style="padding: 8px 0; color: var(--muted); border: none;">Asking Price</td>
+                <td style="padding: 8px 0; border: none; text-align: right; font-weight: 600;">£{{ "{:,}".format(listing.asking_price) }}</td>
+            </tr>
+            {% if comparables.avg %}
+            <tr>
+                <td style="padding: 8px 0; color: var(--muted); border: none;">Market Average (Land Reg)</td>
+                <td style="padding: 8px 0; border: none; text-align: right; font-weight: 600;">£{{ "{:,}".format(comparables.avg) }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; color: var(--muted); border: none;">Market Median</td>
+                <td style="padding: 8px 0; border: none; text-align: right;">£{{ "{:,}".format(comparables.median) }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; color: var(--muted); border: none;">Comparable Sales</td>
+                <td style="padding: 8px 0; border: none; text-align: right;">{{ comparables.count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" style="padding: 8px 0; border: none; color: var(--muted); font-size: 13px;">
+                    No Land Registry data loaded yet for {{ listing.postcode.split()[0] }}.
+                    <a href="/land-registry?postcode={{ listing.postcode.split()[0] }}">Load comparables →</a>
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+
+        {% if deal_score.flags %}
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">SIGNALS DETECTED</div>
+            {% for flag in deal_score.flags %}
+            <div style="font-size: 13px; margin-bottom: 4px;">{{ flag }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px;">📐 {{ metrics.strategy }} Metrics</h3>
+        {% for key, val in metrics.items() %}
+        {% if key not in ['strategy', 'notes'] %}
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;">
+            <span style="color: var(--muted);">{{ key | replace('_', ' ') | title }}</span>
+            <span style="font-weight: 600;">
+                {% if 'price' in key or 'cost' in key or 'profit' in key or 'value' in key or 'rent' in key or 'cashflow' in key or 'gross' in key or 'arv' in key or 'gdv' in key %}
+                    £{{ "{:,}".format(val) }}
+                {% elif 'pct' in key or 'yield' in key %}
+                    {{ "%.1f"|format(val) }}%
+                {% else %}
+                    {{ val }}
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% if metrics.notes %}
+        <div style="margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6;">{{ metrics.notes }}</div>
+        {% endif %}
+
+        <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px;">
+            <div style="font-size: 12px; color: var(--muted); width: 100%; margin-bottom: 4px;">VIABLE STRATEGIES</div>
+            {% for s in deal_score.strategies %}
+            <span class="flag">{{ s }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- AI Analysis -->
+<div class="card">
+    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px;">🤖 AI Investment Analysis</h3>
+    <div class="analysis-box">{{ ai_analysis }}</div>
+</div>
+
+<!-- Comparable Sales -->
+{% if comparables.sales %}
+<div class="card" style="margin-top: 24px; padding: 0;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: 15px; font-weight: 600;">📋 Recent Comparable Sales ({{ listing.postcode.split()[0] }})</h3>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Address</th><th>Price</th><th>Date</th><th>Type</th></tr>
+        </thead>
+        <tbody>
+        {% for sale in comparables.sales %}
+        <tr>
+            <td style="font-size: 13px;">{{ sale.address }}</td>
+            <td style="font-weight: 600; color: var(--gold);">£{{ "{:,}".format(sale.price) }}</td>
+            <td style="font-size: 12px; color: var(--muted);">{{ sale.date }}</td>
+            <td style="font-size: 12px;">{{ sale.property_type }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

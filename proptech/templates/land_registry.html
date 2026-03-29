@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Land Registry — Northbridge{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">📋 Land Registry — Sold Prices</div>
+    <div class="page-sub">Official HM Land Registry data · {{ total_records }} records loaded · Free public data</div>
+</div>
+
+<div class="grid-2" style="gap: 24px; align-items: start;">
+    <!-- Search + Import -->
+    <div>
+        <div class="card" style="margin-bottom: 16px;">
+            <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px;">Search Comparables</h3>
+            <form method="get" style="display: flex; gap: 8px;">
+                <input type="text" name="postcode" value="{{ postcode }}" placeholder="NE8" style="flex: 1;">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+            <div style="margin-top: 8px; font-size: 12px; color: var(--muted);">
+                Enter postcode prefix (NE1, SR2, TS10 etc.)
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 16px;">
+            <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px;">Import Data</h3>
+            <p style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">
+                Pull 12 months of sold prices for any NE postcode prefix from the official Land Registry SPARQL API.
+            </p>
+            <form hx-post="/land-registry/import" hx-target="#import-result" hx-swap="innerHTML"
+                  style="display: flex; gap: 8px;">
+                <select name="postcode_prefix" style="flex: 1;">
+                    {% for pc in ne_postcodes %}
+                    <option value="{{ pc }}">{{ pc }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-gold">Import</button>
+            </form>
+            <div id="import-result" style="margin-top: 10px; font-size: 13px; color: var(--green);"></div>
+        </div>
+
+        {% if comparables.avg %}
+        <div class="card">
+            <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 16px;">{{ postcode }} Market Summary</h3>
+            <table style="font-size: 14px;">
+                <tr>
+                    <td style="padding: 8px 0; color: var(--muted); border: none;">Average Price</td>
+                    <td style="padding: 8px 0; border: none; text-align: right; font-weight: 700; color: var(--gold);">£{{ "{:,}".format(comparables.avg) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: var(--muted); border: none;">Median Price</td>
+                    <td style="padding: 8px 0; border: none; text-align: right; font-weight: 600;">£{{ "{:,}".format(comparables.median) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: var(--muted); border: none;">Lowest</td>
+                    <td style="padding: 8px 0; border: none; text-align: right;">£{{ "{:,}".format(comparables.min) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: var(--muted); border: none;">Highest</td>
+                    <td style="padding: 8px 0; border: none; text-align: right;">£{{ "{:,}".format(comparables.max) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: var(--muted); border: none;">Sales (12 months)</td>
+                    <td style="padding: 8px 0; border: none; text-align: right;">{{ comparables.count }}</td>
+                </tr>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sales table -->
+    <div>
+        <div class="card" style="padding: 0;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 15px; font-weight: 600;">Sold Prices — {{ postcode }}</h3>
+                <span style="font-size: 12px; color: var(--muted);">{{ sales | length }} results</span>
+            </div>
+            {% if sales %}
+            <table>
+                <thead>
+                    <tr><th>Address</th><th>Price</th><th>Date</th><th>Type</th></tr>
+                </thead>
+                <tbody>
+                {% for s in sales %}
+                <tr>
+                    <td style="font-size: 13px;">{{ s.address or "—" }}</td>
+                    <td style="font-weight: 600; color: var(--gold);">£{{ "{:,}".format(s.price) }}</td>
+                    <td style="font-size: 12px; color: var(--muted);">{{ s.date }}</td>
+                    <td style="font-size: 12px;">{{ s.property_type }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding: 32px; text-align: center; color: var(--muted);">
+                No data for {{ postcode }}. Use the import tool to load it.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
