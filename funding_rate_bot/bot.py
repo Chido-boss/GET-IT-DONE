@@ -365,7 +365,8 @@ class FundingRateBot:
 
     async def daily_reset_task(self) -> None:
         """
-        At midnight UTC, reset daily P&L stats and update risk manager reference balance.
+        At midnight UTC, log a daily performance summary, reset daily P&L stats,
+        and update the risk manager reference balance.
         """
         logger.info("Daily reset task started")
         while self._running:
@@ -381,6 +382,7 @@ class FundingRateBot:
                 if not self._running:
                     break
                 logger.info("Midnight UTC – performing daily reset")
+                await self._log_daily_summary()
                 await self.db.reset_daily_stats()
                 balance = await self.exchange.get_balance()
                 self.risk.set_portfolio_value(balance)
@@ -391,6 +393,61 @@ class FundingRateBot:
             except Exception as exc:
                 logger.error("Daily reset error: %s", exc, exc_info=True)
                 await asyncio.sleep(3600)  # retry in an hour
+
+    async def _log_daily_summary(self) -> None:
+        """Print a daily performance summary to the log and Telegram (if configured)."""
+        try:
+            today_stats = await self.db.get_daily_stats()
+            all_time = await self.db.get_all_time_funding()
+            open_positions = await self.db.get_open_positions()
+            balance = await self.exchange.get_balance()
+
+            proj_annual = 0.0
+            pos_lines = []
+            for pos in open_positions:
+                notional = pos["spot_size"] * pos["entry_spot_price"]
+                apy = pos["entry_funding_rate"] * 1095 * 100
+                proj_annual += notional * pos["entry_funding_rate"] * 1095
+                pos_lines.append(
+                    f"  {pos['symbol']:8s}  ${notional:8.2f}  {apy:.1f}% APY  "
+                    f"collected=${pos['total_funding_collected']:.4f}"
+                )
+
+            sep = "─" * 56
+            lines = [
+                sep,
+                "  DAILY PERFORMANCE SUMMARY",
+                f"  Date:               {today_stats['date']}",
+                f"  Balance:            ${balance:,.2f}",
+                f"  Today Funding:      ${today_stats['total_funding_collected']:.4f}",
+                f"  Today Net P&L:      ${today_stats['net_pnl']:+.4f}",
+                f"  All-time Funding:   ${all_time:.4f}",
+                f"  Opened Today:       {today_stats['positions_opened']}",
+                f"  Closed Today:       {today_stats['positions_closed']}",
+                f"  Open Positions:     {len(open_positions)}",
+                f"  Projected Annual:   ${proj_annual:,.2f}",
+            ]
+            if pos_lines:
+                lines.append("  ── Open Positions ──")
+                lines.extend(pos_lines)
+            lines.append(sep)
+            for line in lines:
+                logger.info(line)
+
+            if self.notifier:
+                sign = "+" if today_stats["net_pnl"] >= 0 else ""
+                emoji = "🟢" if today_stats["net_pnl"] >= 0 else "🔴"
+                await self.notifier.send(
+                    f"{emoji} <b>Daily Summary — {today_stats['date']}</b>\n"
+                    f"Balance: <b>${balance:,.2f}</b>\n"
+                    f"Today Funding: <b>${today_stats['total_funding_collected']:.4f}</b>\n"
+                    f"Net P&L: <b>{sign}${today_stats['net_pnl']:.4f}</b>\n"
+                    f"All-time: <b>${all_time:.4f}</b>\n"
+                    f"Open Positions: {len(open_positions)}\n"
+                    f"Projected Annual: ${proj_annual:,.2f}"
+                )
+        except Exception as exc:
+            logger.error("Daily summary error: %s", exc)
 
     # ------------------------------------------------------------------
     # Position open / close helpers
@@ -598,11 +655,29 @@ Examples:
         action="store_true",
         help="Disable the Rich TUI dashboard (use plain log output)",
     )
+    parser.add_argument(
+        "--report",
+        action="store_true",
+        help="Print performance report from the database and exit",
+    )
+    parser.add_argument(
+        "--report-days",
+        type=int,
+        default=30,
+        metavar="N",
+        help="Days of history to show in --report (default: 30)",
+    )
     return parser.parse_args()
 
 
 async def _main() -> None:
     args = _parse_args()
+
+    if args.report:
+        # Delegate to report module — no need to start the full bot
+        from report import _run as run_report
+        await run_report(days=args.report_days, as_json=False)
+        return
 
     live_mode = False
     if args.live:
