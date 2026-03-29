@@ -263,7 +263,7 @@ class Dashboard:
         positions = self._state.open_positions
         if not positions:
             table.add_row(
-                "[dim]—", "—", "—", "—", "—", "—", "—[/dim]",
+                "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]",
             )
         else:
             for pos in positions[:10]:  # max 10 rows
@@ -301,7 +301,7 @@ class Dashboard:
 
         trades = self._state.last_trades[-10:][::-1]  # last 10, newest first
         if not trades:
-            table.add_row("[dim]—", "—", "—", "—", "—", "—[/dim]")
+            table.add_row("[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", "[dim]—[/dim]")
         else:
             for t in trades:
                 dt = datetime.fromtimestamp(t.timestamp, tz=timezone.utc)
