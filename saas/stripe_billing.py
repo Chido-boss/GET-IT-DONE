@@ -1,5 +1,5 @@
 """
-Stripe billing integration for CryptoWatch SaaS.
+Stripe billing integration for NorthSignal SaaS.
 
 Plans:
   starter  — £9.99/month  — 10 alerts

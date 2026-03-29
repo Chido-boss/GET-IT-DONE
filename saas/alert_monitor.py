@@ -137,7 +137,7 @@ class AlertMonitor:
             logger.debug("No Telegram chat ID for user %d — skipping", alert.user_id)
             return
 
-        success = await self._send_telegram(user.telegram_chat_id, f"🔔 CryptoWatch Alert\n\n{message}")
+        success = await self._send_telegram(user.telegram_chat_id, f"🔔 NorthSignal Alert\n\n{message}")
         if success:
             await self._db.record_alert_fired(alert, price, message)
             logger.info(

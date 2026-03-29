@@ -1,5 +1,5 @@
 """
-CryptoWatch SaaS — Main FastAPI Application
+NorthSignal SaaS — Main FastAPI Application
 
 Routes:
   GET  /                  Landing page
@@ -61,14 +61,14 @@ async def lifespan(app: FastAPI):
     await db.connect()
     monitor = AlertMonitor(db, TELEGRAM_TOKEN)
     asyncio.create_task(monitor.start())
-    logger.info("CryptoWatch started")
+    logger.info("NorthSignal started")
     yield
     monitor.stop()
     await db.close()
-    logger.info("CryptoWatch stopped")
+    logger.info("NorthSignal stopped")
 
 
-app = FastAPI(title="CryptoWatch", lifespan=lifespan)
+app = FastAPI(title="NorthSignal", lifespan=lifespan)
 templates = Jinja2Templates(directory="templates")
 
 

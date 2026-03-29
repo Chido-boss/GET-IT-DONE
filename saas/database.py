@@ -1,5 +1,5 @@
 """
-Database layer for CryptoWatch SaaS.
+Database layer for NorthSignal SaaS.
 Tables: users, subscriptions, alerts, alert_history
 All async via aiosqlite.
 """
@@ -13,7 +13,7 @@ from typing import List, Optional
 
 import aiosqlite
 
-DB_PATH = os.getenv("DB_FILE", "cryptowatch.db")
+DB_PATH = os.getenv("DB_FILE", "northsignal.db")
 
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ class Database:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        salt = os.getenv("PW_SALT", "cryptowatch-salt-change-me")
+        salt = os.getenv("PW_SALT", "northsignal-salt-change-me")
         return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
 
     async def create_user(self, email: str, password: str) -> Optional[User]:

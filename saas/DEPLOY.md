@@ -1,11 +1,11 @@
-# Deploy CryptoWatch to Railway (Free → Paid)
+# Deploy NorthSignal to Railway (Free → Paid)
 
 ## 5-minute deployment
 
 ### 1. Push to GitHub
 ```bash
 git add saas/
-git commit -m "Add CryptoWatch SaaS"
+git commit -m "Add NorthSignal SaaS"
 git push
 ```
 
@@ -18,7 +18,7 @@ git push
 Copy from `saas/.env.example` and fill in real values:
 - `SESSION_SECRET` — generate with: `python -c "import secrets; print(secrets.token_hex(32))"`
 - `PW_SALT` — same as above
-- `BASE_URL` — your Railway app URL (e.g. `https://cryptowatch.up.railway.app`)
+- `BASE_URL` — your Railway app URL (e.g. `https://northsignal.up.railway.app`)
 - `HTTPS` — `true`
 - `TELEGRAM_BOT_TOKEN` — from @BotFather on Telegram
 - Stripe keys (see below)

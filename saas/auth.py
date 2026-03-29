@@ -1,5 +1,5 @@
 """
-JWT-based session auth for CryptoWatch SaaS.
+JWT-based session auth for NorthSignal SaaS.
 Tokens stored in HTTP-only cookies.
 """
 from __future__ import annotations
