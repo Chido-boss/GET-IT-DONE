@@ -132,27 +132,26 @@ async def scan_opportunities(
                 )
                 return None
 
-            # Fetch volume for liquidity scoring
+            # Fetch volume for liquidity scoring using public API
             try:
                 if rate.exchange == "bybit" and exchange_client.bybit:
                     vol = await exchange_client.bybit.get_24h_volume(rate.symbol)
                 elif rate.exchange == "okx" and exchange_client.okx:
                     vol = await exchange_client.okx.get_24h_volume(rate.symbol)
                 else:
-                    vol = 0.0
+                    # Use public Bybit endpoint as fallback (no auth needed)
+                    perp_sym = rate.symbol if rate.symbol.endswith("USDT") else f"{rate.symbol}USDT"
+                    vol = await exchange_client.coinglass.get_public_volume(perp_sym)
             except Exception:
                 vol = 0.0
 
-            if vol < MIN_24H_VOLUME_USD:
+            # Only hard-filter if we actually got a volume reading and it's too low
+            if vol > 0 and vol < MIN_24H_VOLUME_USD:
                 logger.debug(
                     "Skipping %s %s: 24h volume %.0f < min %.0f",
                     rate.exchange, base, vol, MIN_24H_VOLUME_USD,
                 )
-                # Don't hard-filter CoinGlass-sourced rates (no volume data)
-                if rate.exchange not in ("bybit", "okx"):
-                    pass  # allow through with low liquidity score
-                else:
-                    return None
+                return None
 
             liq_score = _liquidity_score(vol)
             comp_score = _score_opportunity(rate.funding_rate, liq_score, basis_pct)

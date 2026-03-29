@@ -732,6 +732,52 @@ class CoinGlassScanner:
             logger.warning("CoinGlass fallback also failed: %s", exc)
         return results
 
+    async def get_public_spot_price(self, base_symbol: str) -> float:
+        """Fetch spot price from Bybit public spot tickers — no auth needed."""
+        symbol = f"{base_symbol}USDT"
+        try:
+            resp = await self._bybit_client.get(
+                "/v5/market/tickers",
+                params={"category": "spot", "symbol": symbol},
+            )
+            resp.raise_for_status()
+            items = resp.json().get("result", {}).get("list", [])
+            if items:
+                return float(items[0].get("lastPrice", 0))
+        except Exception as exc:
+            logger.debug("Public spot price failed for %s: %s", base_symbol, exc)
+        return 0.0
+
+    async def get_public_perp_price(self, symbol: str) -> float:
+        """Fetch perp mark price from Bybit public linear tickers — no auth needed."""
+        try:
+            resp = await self._bybit_client.get(
+                "/v5/market/tickers",
+                params={"category": "linear", "symbol": symbol},
+            )
+            resp.raise_for_status()
+            items = resp.json().get("result", {}).get("list", [])
+            if items:
+                return float(items[0].get("markPrice", 0) or items[0].get("lastPrice", 0))
+        except Exception as exc:
+            logger.debug("Public perp price failed for %s: %s", symbol, exc)
+        return 0.0
+
+    async def get_public_volume(self, symbol: str) -> float:
+        """Fetch 24h turnover from Bybit public linear tickers — no auth needed."""
+        try:
+            resp = await self._bybit_client.get(
+                "/v5/market/tickers",
+                params={"category": "linear", "symbol": symbol},
+            )
+            resp.raise_for_status()
+            items = resp.json().get("result", {}).get("list", [])
+            if items:
+                return float(items[0].get("turnover24h", 0) or 0)
+        except Exception as exc:
+            logger.debug("Public volume failed for %s: %s", symbol, exc)
+        return 0.0
+
     async def close(self) -> None:
         await self._bybit_client.aclose()
         await self._cg_client.aclose()
@@ -974,6 +1020,15 @@ class ExchangeClient:
                 logger.debug("OKX spot price failed for %s: %s", base_symbol, exc)
 
         if not prices:
+            # Fallback: use Bybit public tickers (no auth needed)
+            try:
+                p = await self.coinglass.get_public_spot_price(base_symbol)
+                if p > 0:
+                    prices.append(("bybit-public", p))
+            except Exception as exc:
+                logger.debug("Bybit public spot price fallback failed for %s: %s", base_symbol, exc)
+
+        if not prices:
             return ("none", 0.0)
         return min(prices, key=lambda x: x[1])
 
@@ -982,7 +1037,11 @@ class ExchangeClient:
             return await self.bybit.get_perp_price(symbol)
         if exchange == "okx" and self.okx:
             return await self.okx.get_perp_price(symbol)
-        return 0.0
+        # Fallback: use public Bybit tickers
+        try:
+            return await self.coinglass.get_public_perp_price(symbol + "USDT")
+        except Exception:
+            return 0.0
 
     async def get_balance(self) -> float:
         if self._cfg.paper_mode and self.paper:
