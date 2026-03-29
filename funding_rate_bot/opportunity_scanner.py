@@ -286,7 +286,8 @@ def _extract_base_symbol(exchange: str, symbol: str) -> str | None:
                 base = symbol[: -len(quote)]
                 if base:
                     return base
-        return None
+        # Symbol already stripped of quote currency (e.g. "SOL" not "SOLUSDT")
+        return symbol if symbol else None
     if exchange == "okx":
         parts = symbol.split("-")
         if parts:
