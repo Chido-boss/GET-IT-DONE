@@ -60,7 +60,7 @@ class Config:
 
     # Entry / exit thresholds
     min_funding_rate: float = field(
-        default_factory=lambda: _env_float("MIN_FUNDING_RATE", 0.0003)
+        default_factory=lambda: _env_float("MIN_FUNDING_RATE", 0.0001)
     )
     exit_funding_rate: float = field(
         default_factory=lambda: _env_float("EXIT_FUNDING_RATE", 0.00005)
