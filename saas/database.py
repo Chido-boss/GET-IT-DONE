@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
     email       TEXT    UNIQUE NOT NULL,
     pw_hash     TEXT    NOT NULL,
     telegram_chat_id TEXT DEFAULT '',
-    created_at  REAL    NOT NULL DEFAULT (unixepoch())
+    created_at  REAL    NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     plan                TEXT    NOT NULL DEFAULT 'free',   -- free | starter | pro
     status              TEXT    NOT NULL DEFAULT 'active', -- active | cancelled | past_due
     current_period_end  REAL    DEFAULT 0,
-    updated_at          REAL    NOT NULL DEFAULT (unixepoch())
+    updated_at          REAL    NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 CREATE TABLE IF NOT EXISTS alerts (
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     enabled     INTEGER NOT NULL DEFAULT 1,
     last_fired  REAL    DEFAULT 0,
     cooldown_sec INTEGER NOT NULL DEFAULT 3600,
-    created_at  REAL    NOT NULL DEFAULT (unixepoch())
+    created_at  REAL    NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 CREATE TABLE IF NOT EXISTS alert_history (
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS alert_history (
     asset       TEXT    NOT NULL,
     price_at_fire REAL  NOT NULL,
     message     TEXT    NOT NULL,
-    fired_at    REAL    NOT NULL DEFAULT (unixepoch())
+    fired_at    REAL    NOT NULL DEFAULT (strftime('%s','now'))
 );
 """
 
