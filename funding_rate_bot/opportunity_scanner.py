@@ -103,11 +103,14 @@ async def scan_opportunities(
     filtered: list[tuple[FundingRate, str]] = []
     for rate in candidates:
         base = _extract_base_symbol(rate.exchange, rate.symbol)
+        logger.info("  Candidate: %s %s -> base=%s rate=%.6f", rate.exchange, rate.symbol, base, rate.funding_rate)
         if not base:
+            logger.info("  SKIP: could not extract base symbol from %s %s", rate.exchange, rate.symbol)
             continue
         if base in open_symbols:
             continue
         filtered.append((rate, base))
+    logger.info("After symbol extraction: %d candidates pass to enrichment", len(filtered))
 
     # --- Step 3: Fetch spot prices, perp prices, and volumes concurrently ---
     import asyncio
