@@ -627,67 +627,114 @@ class OKXClient:
 
 class CoinGlassScanner:
     """
-    Uses the CoinGlass open API to fetch cross-exchange funding rate comparisons.
-    This endpoint is public and does not require authentication.
+    Fetches funding rates using Bybit's public market tickers endpoint
+    (no API key required) with CoinGlass as a secondary source.
     """
 
     def __init__(self) -> None:
-        self._sem = asyncio.Semaphore(3)
-        self._client = httpx.AsyncClient(
+        self._sem = asyncio.Semaphore(5)
+        self._bybit_client = httpx.AsyncClient(
+            base_url=_BYBIT_BASE,
+            headers={"User-Agent": "FundingRateBot/1.0", "Accept": "application/json"},
+            timeout=15.0,
+        )
+        self._cg_client = httpx.AsyncClient(
             base_url=_COINGLASS_BASE,
-            headers={
-                "User-Agent": "FundingRateBot/1.0",
-                "Accept": "application/json",
-            },
+            headers={"User-Agent": "FundingRateBot/1.0", "Accept": "application/json"},
+            timeout=15.0,
         )
 
-    async def get_all_funding_rates(self) -> list[FundingRate]:
-        """
-        Fetch funding rates from CoinGlass public API.
-        Returns a combined list keyed by (exchange, symbol).
-        """
+    async def _fetch_bybit_public(self) -> list[FundingRate]:
+        """Use Bybit public tickers endpoint — no auth needed."""
         try:
-            data = await _request_with_retry(
-                self._client,
-                "GET",
-                "/public/api/fundingRate/v2/home/list",
-                self._sem,
-                params={"interval": "8h"},
+            resp = await self._bybit_client.get(
+                "/v5/market/tickers",
+                params={"category": "linear"},
             )
-        except Exception as exc:
-            logger.warning("CoinGlass fetch failed: %s", exc)
-            return []
-
-        results: list[FundingRate] = []
-        for item in data.get("data", []):
-            symbol_base = item.get("symbol", "")
-            for exchange_data in item.get("uMarginList", []):
-                exchange_name = exchange_data.get("exchangeName", "").lower()
-                fr_str = exchange_data.get("rate")
+            resp.raise_for_status()
+            payload = resp.json()
+            results: list[FundingRate] = []
+            for item in payload.get("result", {}).get("list", []):
+                symbol = item.get("symbol", "")
+                # Only USDT-settled perpetuals
+                if not symbol.endswith("USDT"):
+                    continue
+                fr_str = item.get("fundingRate")
+                next_time = item.get("nextFundingTime")
                 if fr_str is None:
                     continue
                 try:
                     fr = float(fr_str)
                 except (ValueError, TypeError):
                     continue
-                # Normalize exchange names to match our client keys
-                if "bybit" in exchange_name:
-                    exchange_name = "bybit"
-                elif "okx" in exchange_name or "okex" in exchange_name:
-                    exchange_name = "okx"
+                # Convert next_funding_time from ms timestamp to ISO string
+                nft_str = None
+                if next_time:
+                    try:
+                        nft_str = datetime.fromtimestamp(
+                            int(next_time) / 1000, tz=timezone.utc
+                        ).isoformat()
+                    except Exception:
+                        pass
                 results.append(
                     FundingRate(
-                        exchange=exchange_name,
-                        symbol=symbol_base,
+                        exchange="bybit",
+                        symbol=symbol.replace("USDT", ""),
                         funding_rate=fr,
                         annualized_rate=fr * cfg.funding_periods_per_year,
-                        next_funding_time=None,
+                        next_funding_time=nft_str,
                     )
                 )
+            logger.info("Bybit public tickers: fetched %d funding rates", len(results))
+            return results
+        except Exception as exc:
+            logger.warning("Bybit public tickers fetch failed: %s", exc)
+            return []
+
+    async def get_all_funding_rates(self) -> list[FundingRate]:
+        """Primary: Bybit public API. Fallback: CoinGlass."""
+        results = await self._fetch_bybit_public()
+        if results:
+            return results
+        # Fallback to CoinGlass
+        try:
+            resp = await self._cg_client.get(
+                "/public/api/fundingRate/v2/home/list",
+                params={"interval": "8h"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for item in data.get("data", []):
+                symbol_base = item.get("symbol", "")
+                for exchange_data in item.get("uMarginList", []):
+                    exchange_name = exchange_data.get("exchangeName", "").lower()
+                    fr_str = exchange_data.get("rate")
+                    if fr_str is None:
+                        continue
+                    try:
+                        fr = float(fr_str)
+                    except (ValueError, TypeError):
+                        continue
+                    if "bybit" in exchange_name:
+                        exchange_name = "bybit"
+                    elif "okx" in exchange_name or "okex" in exchange_name:
+                        exchange_name = "okx"
+                    results.append(
+                        FundingRate(
+                            exchange=exchange_name,
+                            symbol=symbol_base,
+                            funding_rate=fr,
+                            annualized_rate=fr * cfg.funding_periods_per_year,
+                            next_funding_time=None,
+                        )
+                    )
+        except Exception as exc:
+            logger.warning("CoinGlass fallback also failed: %s", exc)
         return results
 
     async def close(self) -> None:
-        await self._client.aclose()
+        await self._bybit_client.aclose()
+        await self._cg_client.aclose()
 
 
 # ---------------------------------------------------------------------------
