@@ -1,0 +1,5 @@
+httpx>=0.28
+websockets>=15.0
+rich>=14.0
+aiosqlite>=0.21
+python-dotenv>=1.2
