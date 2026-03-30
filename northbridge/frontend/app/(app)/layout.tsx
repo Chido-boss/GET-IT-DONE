@@ -14,6 +14,7 @@ import {
   Upload,
   LogOut,
   ChevronRight,
+  TrendingUp,
 } from 'lucide-react'
 import type { User } from '@/types'
 import { api } from '@/lib/api'
@@ -23,7 +24,8 @@ const NAV_SECTIONS = [
     label: 'Intelligence',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/listings', label: 'Deals', icon: Building2 },
+      { href: '/deals', label: 'Deal Pipeline', icon: TrendingUp },
+      { href: '/listings', label: 'Listings', icon: Building2 },
       { href: '/planning', label: 'Planning', icon: FileText },
       { href: '/regen', label: 'Regen Zones', icon: MapPin },
     ],

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
 from app.routers import (
+    deals,
     auth,
     listings,
     planning,
@@ -61,6 +62,7 @@ app.include_router(regen_zones.router)
 app.include_router(saved_searches.router)
 app.include_router(imports.router)
 app.include_router(dashboard.router)
+app.include_router(deals.router)
 
 
 # ---------------------------------------------------------------------------

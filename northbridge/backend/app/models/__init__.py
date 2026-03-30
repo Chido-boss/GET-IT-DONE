@@ -7,6 +7,7 @@ from app.models.regen_zone import RegenerationZone
 from app.models.alert import Alert, AlertEvent
 from app.models.saved_search import SavedSearch
 from app.models.import_log import ImportLog
+from app.models.deal import Deal
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "AlertEvent",
     "SavedSearch",
     "ImportLog",
+    "Deal",
 ]

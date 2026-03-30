@@ -10,22 +10,36 @@ import { ScoreBadge } from '@/components/ui/ScoreBadge'
 import { formatPrice, formatDiscount, propertyTypeLabel } from '@/lib/utils'
 import type { DashboardStats, Listing } from '@/types'
 
+const TIER_STYLE: Record<string, { bg: string; color: string }> = {
+  S: { bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
+  A: { bg: 'rgba(245,158,11,0.12)', color: '#d97706' },
+  B: { bg: 'rgba(37,99,235,0.12)', color: '#3b82f6' },
+  C: { bg: 'rgba(100,116,139,0.1)', color: '#64748b' },
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [topDeals, setTopDeals] = useState<Listing[]>([])
+  const [pipeline, setPipeline] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   async function fetchData() {
     setLoading(true)
     setError(null)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('nb_token') : null
+    const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
     try {
-      const [statsData, dealsData] = await Promise.all([
+      const [statsData, dealsData, pipelineData] = await Promise.all([
         api.dashboard.stats(),
         api.listings.list({ min_score: '0', limit: '10', sort: 'score' }),
+        token
+          ? fetch(`${BASE}/deals/pipeline`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null).catch(() => null)
+          : Promise.resolve(null),
       ])
       setStats(statsData)
       setTopDeals(dealsData.items)
+      setPipeline(pipelineData)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
@@ -138,6 +152,64 @@ export default function DashboardPage() {
           accent="amber"
         />
       </div>
+
+      {/* Deal Pipeline Row */}
+      {pipeline && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+          {/* Pipeline stages */}
+          <div style={{ background: '#0f1729', border: '1px solid #1e2d45', borderRadius: 4, padding: '14px 18px' }}>
+            <h2 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: 12 }}>Deal Pipeline</h2>
+            {[
+              { key: 'active', label: 'Active', color: '#10b981' },
+              { key: 'under_offer', label: 'Under Offer', color: '#d97706' },
+              { key: 'acquired', label: 'Acquired', color: '#3b82f6' },
+              { key: 'completed', label: 'Completed', color: '#6366f1' },
+            ].map(s => (
+              <div key={s.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>{s.label}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{pipeline.pipeline?.[s.key] ?? 0}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #1e2d45', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 11, color: '#475569' }}>Avg ROI across all deals</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>{pipeline.avg_roi ?? 0}%</span>
+            </div>
+          </div>
+
+          {/* Top 5 deals */}
+          <div style={{ background: '#0f1729', border: '1px solid #1e2d45', borderRadius: 4, padding: '14px 18px', gridColumn: 'span 2' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>Top Scored Deals</h2>
+              <Link href="/deals" style={{ fontSize: '0.75rem', color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                View Pipeline <ArrowUpRight size={11} />
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {(pipeline.top_deals || []).slice(0, 5).map((d: any) => {
+                const tier = d.overall_score >= 75 ? 'S' : d.overall_score >= 60 ? 'A' : d.overall_score >= 45 ? 'B' : 'C'
+                const ts = TIER_STYLE[tier]
+                return (
+                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: '#0a1020', borderRadius: 3 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 2, background: ts.bg, color: ts.color, minWidth: 42, textAlign: 'center' }}>
+                      {tier} {(d.overall_score || 0).toFixed(0)}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+                    <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>{formatPrice(d.purchase_price)}</span>
+                    {d.roi && <span style={{ fontSize: 11, fontWeight: 700, color: d.roi >= 20 ? '#10b981' : '#d97706', whiteSpace: 'nowrap' }}>{d.roi.toFixed(0)}% ROI</span>}
+                    <Link href={`/deals/${d.id}`} style={{ fontSize: 11, color: '#3b82f6', textDecoration: 'none', whiteSpace: 'nowrap' }}>View →</Link>
+                  </div>
+                )
+              })}
+              {(!pipeline.top_deals || pipeline.top_deals.length === 0) && (
+                <div style={{ fontSize: 12, color: '#475569', textAlign: 'center', padding: '12px 0' }}>No deals yet — run seed_deals.py</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Two-column layout */}
       <div
