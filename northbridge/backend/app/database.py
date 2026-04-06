@@ -36,7 +36,7 @@ async def get_db() -> AsyncSession:
 async def init_db() -> None:
     from app.models import (  # noqa: F401
         user, listing, score, comparable, planning,
-        regen_zone, alert, saved_search, import_log,
+        regen_zone, alert, saved_search, import_log, deal,
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
