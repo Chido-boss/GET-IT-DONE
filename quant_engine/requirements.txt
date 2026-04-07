@@ -1,0 +1,3 @@
+# No third-party dependencies — uses Python stdlib only (urllib, json, etc.)
+# requests is listed as optional fallback but not used
+# Python >= 3.10 required (for match/case and type hint syntax)
