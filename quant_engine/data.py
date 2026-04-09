@@ -109,3 +109,61 @@ def latest_price(symbol: str) -> float:
     """Current best-bid/ask mid from Binance ticker."""
     raw = _get(f"{BINANCE_BASE}/api/v3/ticker/price", {"symbol": symbol})
     return float(raw.get("price", 0))
+
+
+# ── Kraken ─────────────────────────────────────────────────────────────────────
+
+KRAKEN_BASE = "https://api.kraken.com"
+
+_BINANCE_TO_KRAKEN: dict[str, str] = {
+    "BTCUSDT":  "XBTUSD",
+    "ETHUSDT":  "ETHUSD",
+    "SOLUSDT":  "SOLUSD",
+    "ADAUSDT":  "ADAUSD",
+    "XRPUSDT":  "XRPUSD",
+    "DOTUSDT":  "DOTUSD",
+    "LTCUSDT":  "LTCUSD",
+    "LINKUSDT": "LINKUSD",
+    "AVAXUSDT": "AVAXUSD",
+    "MATICUSDT":"MATICUSD",
+}
+
+
+def binance_to_kraken(symbol: str) -> str:
+    return _BINANCE_TO_KRAKEN.get(symbol.upper(), symbol)
+
+
+def fetch_kraken_candles(symbol: str, interval_minutes: int = 240, limit: int = 200) -> list:
+    """
+    Fetch OHLCV candles from Kraken public OHLC endpoint.
+    interval_minutes: 1 5 15 30 60 240 1440 10080 21600
+    Returns same dict schema as fetch_candles (timestamp in ms).
+    """
+    pair = binance_to_kraken(symbol)
+    full_url = (
+        KRAKEN_BASE + "/0/public/OHLC?"
+        + urllib.parse.urlencode({"pair": pair, "interval": interval_minutes})
+    )
+    for attempt in range(4):
+        try:
+            req = urllib.request.Request(full_url, headers={"User-Agent": "quant-engine/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            if data.get("error"):
+                raise RuntimeError(f"Kraken error: {data['error']}")
+            result = data["result"]
+            pair_key = next(k for k in result if k != "last")
+            raw = result[pair_key][-limit:]
+            return [{
+                "timestamp": int(k[0]) * 1000,
+                "open":      float(k[1]),
+                "high":      float(k[2]),
+                "low":       float(k[3]),
+                "close":     float(k[4]),
+                "volume":    float(k[6]),
+            } for k in raw]
+        except Exception as exc:
+            if attempt == 3:
+                raise RuntimeError(f"Kraken API failed after 4 attempts: {exc}") from exc
+            time.sleep(2 ** attempt)
+    return []

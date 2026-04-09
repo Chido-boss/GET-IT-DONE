@@ -25,7 +25,7 @@ import time
 from datetime import datetime, timezone
 
 from config import cfg, Config
-from data import fetch_candles
+from data import fetch_candles, fetch_kraken_candles
 from indicators import compute, ema as ema_series
 from strategy import generate, check_exit
 from execution import ExecutionEngine
@@ -50,9 +50,9 @@ signal.signal(signal.SIGINT,  _handle_signal)
 # ── HTF helper ────────────────────────────────────────────────────────────────
 
 def _fetch_htf_ema(symbol: str, period: int) -> float | None:
-    """Fetch 4h candles and return the latest EMA(period) value, or None on failure."""
+    """Fetch 4h Kraken candles and return the latest EMA(period) value, or None on failure."""
     try:
-        candles = fetch_candles(symbol, "4h", limit=period + 10)
+        candles = fetch_kraken_candles(symbol, interval_minutes=240, limit=period + 10)
         if len(candles) < period:
             return None
         closes = [c["close"] for c in candles]
