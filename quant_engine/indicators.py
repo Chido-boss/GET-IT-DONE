@@ -140,6 +140,7 @@ def compute(candles: list[dict], cfg) -> Optional[dict]:
 
     pv_f  = ema_f_series[j]
     pv_s  = ema_s_series[j]
+    pv_r  = rsi_series[j]   # previous RSI for direction check
 
     if any(v is None for v in [ev_f, ev_s, ev_t, ev_r, ev_a, pv_f, pv_s]):
         return None
@@ -148,13 +149,14 @@ def compute(candles: list[dict], cfg) -> Optional[dict]:
     prev_price = closes[j]
 
     return {
-        "price":     price,
+        "price":      price,
         "prev_price": prev_price,
-        "ema_fast":  ev_f,
-        "ema_slow":  ev_s,
-        "ema_trend": ev_t,
-        "rsi":       ev_r,
-        "atr":       ev_a,
+        "ema_fast":   ev_f,
+        "ema_slow":   ev_s,
+        "ema_trend":  ev_t,
+        "rsi":        ev_r,
+        "prev_rsi":   pv_r,   # None-safe: strategy.generate uses .get("prev_rsi", rsi_val)
+        "atr":        ev_a,
         "atr_pct":   ev_a / price if price > 0 else 0.0,
         # Crossover flags (current vs previous bar)
         "ema_cross_up":   (pv_f <= pv_s) and (ev_f > ev_s),  # type: ignore

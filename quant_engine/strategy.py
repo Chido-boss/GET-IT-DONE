@@ -33,17 +33,22 @@ def generate(inds: dict, cfg: Config, bars_since_exit: int) -> SignalResult:
 
     Parameters
     ----------
-    inds : output from indicators.compute()
+    inds : output from indicators.compute(), optionally extended with:
+           - htf_ema_trend : float  (4h EMA trend; skipped if absent)
+           - prev_rsi      : float  (RSI of previous bar; skipped if absent)
     cfg  : Config instance
     bars_since_exit : bars elapsed since the last position was closed
     """
 
-    price     = inds["price"]
-    ema_fast  = inds["ema_fast"]
-    ema_slow  = inds["ema_slow"]
-    ema_trend = inds["ema_trend"]
-    rsi_val   = inds["rsi"]
-    atr_pct   = inds["atr_pct"]
+    price      = inds["price"]
+    prev_price = inds.get("prev_price", price)
+    ema_fast   = inds["ema_fast"]
+    ema_slow   = inds["ema_slow"]
+    ema_trend  = inds["ema_trend"]
+    rsi_val    = inds["rsi"]
+    prev_rsi   = inds.get("prev_rsi", rsi_val)
+    atr_pct    = inds["atr_pct"]
+    htf_ema    = inds.get("htf_ema_trend")   # None = HTF not available, filter skipped
 
     # ── Filter 1: Cooldown ────────────────────────────────────────────────────
     if bars_since_exit < cfg.cooldown_bars:
@@ -56,30 +61,36 @@ def generate(inds: dict, cfg: Config, bars_since_exit: int) -> SignalResult:
             f"low volatility (ATR%={atr_pct*100:.3f}% < {cfg.min_atr_pct*100:.3f}%)"
         )
 
-    # ── Long signal ───────────────────────────────────────────────────────────
-    long_trend    = price > ema_trend               # above trend EMA
-    long_momentum = ema_fast > ema_slow             # fast above slow
-    long_rsi      = rsi_val >= cfg.rsi_long_min     # RSI confirms strength
+    # ── Filter 3: HTF bias (4h EMA) ───────────────────────────────────────────
+    htf_allows_long  = (htf_ema is None) or (price > htf_ema)
+    htf_allows_short = (htf_ema is None) or (price < htf_ema)
 
-    if long_trend and long_momentum and long_rsi:
+    # ── Long signal ───────────────────────────────────────────────────────────
+    long_trend     = price > ema_trend        # LTF trend filter
+    long_momentum  = ema_fast > ema_slow      # EMA crossover
+    long_expansion = price > prev_price       # price expanding upward
+    long_rsi_dir   = rsi_val > prev_rsi       # RSI strengthening
+
+    if htf_allows_long and long_trend and long_momentum and long_expansion and long_rsi_dir:
+        htf_tag = f"HTF={'above' if htf_ema else 'skip'} "
         return SignalResult(
             "long",
-            f"trend=above_EMA{cfg.ema_trend} "
-            f"cross=BULL "
-            f"RSI={rsi_val:.1f}>={cfg.rsi_long_min}"
+            f"{htf_tag}trend=above_EMA{cfg.ema_trend} cross=BULL "
+            f"expand=YES RSI={prev_rsi:.1f}->{rsi_val:.1f}"
         )
 
     # ── Short signal ──────────────────────────────────────────────────────────
-    short_trend    = price < ema_trend               # below trend EMA
-    short_momentum = ema_fast < ema_slow             # fast below slow
-    short_rsi      = rsi_val <= cfg.rsi_short_max   # RSI confirms weakness
+    short_trend     = price < ema_trend       # LTF trend filter
+    short_momentum  = ema_fast < ema_slow     # EMA crossover
+    short_expansion = price < prev_price      # price expanding downward
+    short_rsi_dir   = rsi_val < prev_rsi      # RSI weakening
 
-    if short_trend and short_momentum and short_rsi:
+    if htf_allows_short and short_trend and short_momentum and short_expansion and short_rsi_dir:
+        htf_tag = f"HTF={'below' if htf_ema else 'skip'} "
         return SignalResult(
             "short",
-            f"trend=below_EMA{cfg.ema_trend} "
-            f"cross=BEAR "
-            f"RSI={rsi_val:.1f}<={cfg.rsi_short_max}"
+            f"{htf_tag}trend=below_EMA{cfg.ema_trend} cross=BEAR "
+            f"expand=YES RSI={prev_rsi:.1f}->{rsi_val:.1f}"
         )
 
     # ── No signal ─────────────────────────────────────────────────────────────
@@ -88,6 +99,12 @@ def generate(inds: dict, cfg: Config, bars_since_exit: int) -> SignalResult:
         reasons.append("price near trend EMA")
     if not (long_momentum or short_momentum):
         reasons.append("no EMA cross")
+    if not (long_expansion or short_expansion):
+        reasons.append("no price expansion")
+    if not (long_rsi_dir or short_rsi_dir):
+        reasons.append("RSI flat/reversing")
+    if htf_ema is not None and not (htf_allows_long or htf_allows_short):
+        reasons.append("HTF bias blocked")
     if not reasons:
         reasons.append("filters misaligned")
 

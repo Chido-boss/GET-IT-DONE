@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 
 from config import cfg, Config
 from data import fetch_candles
-from indicators import compute
+from indicators import compute, ema as ema_series
 from strategy import generate, check_exit
 from execution import ExecutionEngine
 from risk import RiskManager
@@ -45,6 +45,22 @@ def _handle_signal(sig, frame):
 
 signal.signal(signal.SIGTERM, _handle_signal)
 signal.signal(signal.SIGINT,  _handle_signal)
+
+
+# ── HTF helper ────────────────────────────────────────────────────────────────
+
+def _fetch_htf_ema(symbol: str, period: int) -> float | None:
+    """Fetch 4h candles and return the latest EMA(period) value, or None on failure."""
+    try:
+        candles = fetch_candles(symbol, "4h", limit=period + 10)
+        if len(candles) < period:
+            return None
+        closes = [c["close"] for c in candles]
+        series = ema_series(closes, period)
+        val = series[-1]
+        return float(val) if val is not None else None
+    except Exception:
+        return None
 
 
 # ── Main engine ────────────────────────────────────────────────────────────────
@@ -118,6 +134,9 @@ class Engine:
         if inds is None:
             log.skip("Not enough candle history yet")
             return
+
+        # ── HTF bias (4h EMA) — injected into inds dict ───────────────────────
+        inds["htf_ema_trend"] = _fetch_htf_ema(cfg.symbol, cfg.ema_trend)
 
         price = inds["price"]
 
