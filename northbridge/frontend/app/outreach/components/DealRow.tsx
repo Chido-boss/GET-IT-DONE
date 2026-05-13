@@ -229,6 +229,17 @@ export function DealRow({
             {state.buyer_sent ? '✓ Buyer' : 'Buyer'}
           </button>
           <button
+            onClick={e => { e.stopPropagation(); onToggleFollowUp() }}
+            style={{
+              ...btnBase,
+              background: state.follow_up ? 'rgba(245,158,11,0.12)' : 'transparent',
+              color: state.follow_up ? AMBER : TEXT_DIM,
+              border: state.follow_up ? `1px solid ${AMBER}40` : `1px solid ${BORDER}`,
+            }}
+          >
+            {state.follow_up ? '✓ FU' : 'FU'}
+          </button>
+          <button
             onClick={e => { e.stopPropagation(); onToggleFeeLocked() }}
             style={{
               ...btnBase,
