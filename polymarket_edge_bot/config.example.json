@@ -1,0 +1,40 @@
+{
+  "_comment": "Copy to config.json and adjust. All values are safe defaults.",
+
+  "polling_interval_seconds": 30,
+  "max_markets_per_scan": 100,
+  "symbols": ["BTC", "ETH", "SOL"],
+
+  "min_liquidity_usd": 500,
+  "max_spread": 0.08,
+  "min_time_to_expiry_minutes": 10,
+  "max_time_to_expiry_hours": 72,
+  "max_ref_price_age_seconds": 30,
+  "max_orderbook_age_seconds": 60,
+
+  "min_edge_pct": 0.04,
+  "min_fair_value_confidence": 0.55,
+  "delay_penalty_pct": 0.010,
+  "slippage_pct": 0.005,
+  "safety_margin_pct": 0.010,
+
+  "paper_starting_capital_usd": 1000.0,
+  "paper_position_size_usd": 50.0,
+  "paper_take_profit_pct": 0.35,
+  "paper_stop_loss_pct": 0.25,
+
+  "max_trades_per_hour": 20,
+  "max_concurrent_positions": 5,
+  "max_daily_loss_usd": 200.0,
+  "cooldown_after_loss_minutes": 5,
+
+  "vol_window_minutes": 15,
+  "vol_min_samples": 8,
+  "momentum_window_seconds": 180,
+
+  "reference_exchanges": ["kraken", "binance", "coinbase"],
+  "save_raw_samples": true,
+  "log_level": "INFO",
+  "db_path": "data/edge_bot.db",
+  "log_dir": "logs"
+}
